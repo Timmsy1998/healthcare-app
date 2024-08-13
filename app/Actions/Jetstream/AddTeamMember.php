@@ -2,6 +2,7 @@
 
 namespace App\Actions\Jetstream;
 
+use App\Models\Patient;
 use App\Models\Team;
 use App\Models\User;
 use Closure;
@@ -18,13 +19,15 @@ class AddTeamMember implements AddsTeamMembers
     /**
      * Add a new team member to the given team.
      */
-    public function add(User $user, Team $team, string $email, ?string $role = null): void
+    public function add(User $user, Team $team, string $nhsNumber, ?string $role = null): void
     {
         Gate::forUser($user)->authorize('addTeamMember', $team);
 
-        $this->validate($team, $email, $role);
+        $this->validate($team, $nhsNumber, $role);
 
-        $newTeamMember = Jetstream::findUserByEmailOrFail($email);
+        $patient = Patient::where('nhs_number', $nhsNumber)->firstOrFail();
+
+        $newTeamMember = $patient->user;
 
         AddingTeamMember::dispatch($team, $newTeamMember);
 
@@ -38,15 +41,15 @@ class AddTeamMember implements AddsTeamMembers
     /**
      * Validate the add member operation.
      */
-    protected function validate(Team $team, string $email, ?string $role): void
+    protected function validate(Team $team, string $nhsNumber, ?string $role): void
     {
         Validator::make([
-            'email' => $email,
+            'nhs_number' => $nhsNumber,
             'role' => $role,
         ], $this->rules(), [
-            'email.exists' => __('We were unable to find a registered user with this email address.'),
+            'nhs_number.exists' => __('We were unable to find a patient with this NHS Number.'),
         ])->after(
-            $this->ensureUserIsNotAlreadyOnTeam($team, $email)
+            $this->ensurePatientIsNotAlreadyOnTeam($team, $nhsNumber)
         )->validateWithBag('addTeamMember');
     }
 
@@ -58,24 +61,27 @@ class AddTeamMember implements AddsTeamMembers
     protected function rules(): array
     {
         return array_filter([
-            'email' => ['required', 'email', 'exists:users'],
+            'nhs_number' => ['required', 'exists:patients,nhs_number'],
             'role' => Jetstream::hasRoles()
-                            ? ['required', 'string', new Role]
-                            : null,
+            ? ['required', 'string', new Role]
+            : null,
         ]);
     }
 
     /**
-     * Ensure that the user is not already on the team.
+     * Ensure that the patient is not already on the team.
      */
-    protected function ensureUserIsNotAlreadyOnTeam(Team $team, string $email): Closure
+    protected function ensurePatientIsNotAlreadyOnTeam(Team $team, string $nhsNumber): Closure
     {
-        return function ($validator) use ($team, $email) {
-            $validator->errors()->addIf(
-                $team->hasUserWithEmail($email),
-                'email',
-                __('This user already belongs to the team.')
-            );
+        return function ($validator) use ($team, $nhsNumber) {
+            $patient = Patient::where('nhs_number', $nhsNumber)->first();
+
+            if ($patient && $team->hasUser($patient->user)) {
+                $validator->errors()->add(
+                    'nhs_number',
+                    __('This patient already belongs to the team.')
+                );
+            }
         };
     }
 }
