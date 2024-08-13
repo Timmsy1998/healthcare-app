@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Team;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
 class SuperUserSeeder extends Seeder
@@ -28,8 +29,10 @@ class SuperUserSeeder extends Seeder
         ]);
 
         $user->teams()->attach($team->id, ['role' => 'admin']);
-        $user->current_team_id = $team->id;
-        $user->save();
-
+        $user->update(['current_team_id' => $team->id]);
+        $role = Role::where('name', 'Super Admin')->first();
+        if ($role) {
+            $user->roles()->attach($role);
+        }
     }
 }

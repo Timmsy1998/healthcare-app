@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\Role;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -36,8 +37,13 @@ class CreateNewUser implements CreatesNewUsers
             ]), function (User $user) {
                 $unassignedTeam = Team::where('name', 'Unassigned')->first();
                 if ($unassignedTeam) {
-                    $user->teams()->sync([$unassignedTeam->id => ['role' => 'patient']], false);
+                    $user->teams()->attach($unassignedTeam->id, ['role' => 'patient']);
                     $user->update(['current_team_id' => $unassignedTeam->id]);
+                }
+
+                $role = Role::where('name', 'patient')->first();
+                if ($role) {
+                    $user->roles()->attach($role);
                 }
             });
         });

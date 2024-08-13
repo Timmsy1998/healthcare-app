@@ -62,6 +62,7 @@
                                                 <x-dropdown-link href="{{ route('teams.create') }}">
                                                     {{ __('Create New Team') }}
                                                 </x-dropdown-link>
+
                                         @endif
 
                                         <!-- Team Switcher -->

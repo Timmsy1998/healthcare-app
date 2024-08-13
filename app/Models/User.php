@@ -11,7 +11,6 @@ use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
 
-
 class User extends Authenticatable
 {
     use HasApiTokens;
@@ -30,7 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'current_team_id'
+        'current_team_id',
     ];
 
     /**
@@ -75,6 +74,11 @@ class User extends Authenticatable
     public function patients()
     {
         return $this->hasMany(Patient::class);
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class);
     }
 
 }
