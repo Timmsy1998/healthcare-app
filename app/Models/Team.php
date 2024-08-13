@@ -20,7 +20,24 @@ class Team extends JetstreamTeam
     protected $fillable = [
         'name',
         'personal_team',
+        'role',
     ];
+
+    /**
+     * Get the owner of the team.
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get all of the team's users including its owner.
+     */
+    public function allUsers()
+    {
+        return $this->users->concat([$this->owner]);
+    }
 
     /**
      * The event map for the model.
